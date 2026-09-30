@@ -45,7 +45,7 @@ def run_condition_analysis(weights_path=None):
     with open(config_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
         
-    pipeline_dir = os.path.abspath(config["paths"]["pipeline_dir"])
+    pipeline_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     reports_dir = os.path.join(pipeline_dir, config["paths"]["reports_dir"])
     failures_dir = os.path.join(reports_dir, "representative_failures")
     os.makedirs(failures_dir, exist_ok=True)

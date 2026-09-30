@@ -8,8 +8,8 @@ project:
   seed: 42
 
 paths:
-  raw_data_dir: "C:/kamp/4. X-ray/dataset"
-  pipeline_dir: "C:/kamp/kamp_xray_pipeline"
+  raw_data_dir: "dataset"
+  pipeline_dir: "."
   manifest_path: "manifests/manifest.csv"
   label_audit_path: "manifests/label_audit.csv"
   splits_dir: "manifests/splits"

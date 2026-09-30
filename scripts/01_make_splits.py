@@ -56,7 +56,7 @@ def run_make_splits():
     with open(config_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
         
-    pipeline_dir = os.path.abspath(config["paths"]["pipeline_dir"])
+    pipeline_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     manifest_path = os.path.join(pipeline_dir, config["paths"]["manifest_path"])
     splits_dir = os.path.join(pipeline_dir, config["paths"]["splits_dir"])
     os.makedirs(splits_dir, exist_ok=True)

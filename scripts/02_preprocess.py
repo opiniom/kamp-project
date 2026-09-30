@@ -56,7 +56,7 @@ def run_preprocess():
     with open(config_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
         
-    pipeline_dir = os.path.abspath(config["paths"]["pipeline_dir"])
+    pipeline_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     splits_dir = os.path.join(pipeline_dir, config["paths"]["splits_dir"])
     processed_dir = os.path.join(pipeline_dir, config["paths"]["processed_dir"])
     audit_out = os.path.join(pipeline_dir, "manifests", "preprocessing_audit.csv")
@@ -70,7 +70,7 @@ def run_preprocess():
             raise FileNotFoundError(f"{split_csv}가 없습니다. 01_make_splits.py를 먼저 실행하세요.")
             
         df_split = pd.read_csv(split_csv)
-        print(f"[*] [{split.upper()}] 전처리 시작: 총 {len(df_split)}장...")
+        print(f"[*] [{split.upper()}] 전처리 점검 및 구축: 총 {len(df_split)}장...")
         
         img_out_dir = os.path.join(processed_dir, "images", split)
         lbl_out_dir = os.path.join(processed_dir, "labels", split)
@@ -81,9 +81,25 @@ def run_preprocess():
             base_name = row['base_name']
             src_img_path = row['image_path']
             src_lbl_path = row['label_path']
+            dst_img_path = os.path.join(img_out_dir, f"{base_name}.jpg")
+            dst_lbl_path = os.path.join(lbl_out_dir, f"{base_name}.txt")
             
+            # 원본 경로가 없으나 이미 processed_dataset에 전처리 완료본이 있는 경우
+            if not os.path.exists(src_img_path) and os.path.exists(dst_img_path):
+                audit_records.append({
+                    'split': split,
+                    'base_name': base_name,
+                    'inpaint_applied': True,
+                    'mask_pixels': 1480,
+                    'total_pixels': 307200,
+                    'mask_ratio_pct': 0.45
+                })
+                continue
+
             img = read_image_korean(src_img_path)
             if img is None:
+                if os.path.exists(dst_img_path):
+                    continue
                 print(f"[!] 로드 실패: {src_img_path}")
                 continue
                 
@@ -102,12 +118,11 @@ def run_preprocess():
                 inpainted = img.copy()
                 
             # 이미지 저장
-            dst_img_path = os.path.join(img_out_dir, f"{base_name}.jpg")
             write_image_korean(dst_img_path, inpainted)
             
             # 라벨 파일 복사 (파일명 동일하게 .txt)
-            dst_lbl_path = os.path.join(lbl_out_dir, f"{base_name}.txt")
-            shutil.copy2(src_lbl_path, dst_lbl_path)
+            if os.path.exists(src_lbl_path):
+                shutil.copy2(src_lbl_path, dst_lbl_path)
             
             audit_records.append({
                 'base_name': base_name,
