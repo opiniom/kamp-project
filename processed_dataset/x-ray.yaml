@@ -1,0 +1,6 @@
+names:
+  0: foreign_object
+path: C:/kamp/kamp_xray_pipeline/processed_dataset
+test: images/test
+train: images/train
+val: images/val

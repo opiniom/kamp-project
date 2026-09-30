@@ -1,0 +1,51 @@
+{
+  "total_images": 500,
+  "train_count": 294,
+  "val_count": 126,
+  "test_count": 80,
+  "train_boxes": 702,
+  "val_boxes": 329,
+  "test_boxes": 116,
+  "train_groups": [
+    "Machine_1_20200622",
+    "Machine_1_20200624",
+    "Machine_1_20200629",
+    "Machine_1_20200831",
+    "Machine_1_20200905",
+    "Machine_2_20200901",
+    "Machine_2_20200906",
+    "Machine_3_20200622",
+    "Machine_3_20200623",
+    "Machine_3_20200624",
+    "Machine_3_20200625",
+    "Machine_3_20200629",
+    "Machine_3_20200727",
+    "Machine_3_20200811",
+    "Machine_3_20200814",
+    "Machine_3_20200818",
+    "Machine_3_20200819",
+    "Machine_3_20200821",
+    "Machine_3_20200831",
+    "Machine_3_20200922"
+  ],
+  "val_groups": [
+    "Machine_1_20200623",
+    "Machine_1_20200714",
+    "Machine_1_20200715",
+    "Machine_1_20200901",
+    "Machine_1_20200906",
+    "Machine_2_20200904",
+    "Machine_3_20200728"
+  ],
+  "test_groups": [
+    "Machine_1_20200625",
+    "Machine_1_20200907",
+    "Machine_2_20200905",
+    "Machine_3_20200810",
+    "Machine_3_20200815",
+    "Machine_3_20200826"
+  ],
+  "group_leakage_count": 0,
+  "pixel_leakage_count": 0,
+  "leak_free_verified": true
+}

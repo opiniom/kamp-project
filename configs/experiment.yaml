@@ -1,0 +1,68 @@
+# KAMP 주제 ④ X-ray 이물질 탐지 파이프라인 중앙 설정 파일
+# Experiment Configuration
+
+project:
+  name: "KAMP_Xray_Defect_Detection"
+  version: "1.0.0"
+  author: "KAMP Competition Team"
+  seed: 42
+
+paths:
+  raw_data_dir: "C:/kamp/4. X-ray/dataset"
+  pipeline_dir: "C:/kamp/kamp_xray_pipeline"
+  manifest_path: "manifests/manifest.csv"
+  label_audit_path: "manifests/label_audit.csv"
+  splits_dir: "manifests/splits"
+  processed_dir: "processed_dataset"
+  reports_dir: "reports"
+  runs_dir: "runs"
+
+split:
+  train_ratio: 0.60
+  val_ratio: 0.20
+  test_ratio: 0.20
+  group_key: "group_id"  # 호기_촬영일자 기반 그룹 누수 방지
+
+preprocessing:
+  method: "telea"  # 'telea' or 'ns' (Navier-Stokes)
+  inpaint_radius: 3
+  hsv_color_ranges:
+    # 빨간색/주황색/초록색 등 색상 박스 추출 범위
+    red_low1: [0, 40, 40]
+    red_high1: [15, 255, 255]
+    red_low2: [165, 40, 40]
+    red_high2: [180, 255, 255]
+    green_low: [35, 40, 40]
+    green_high: [85, 255, 255]
+
+training:
+  model_name: "yolov8s.pt"  # Baseline: yolov8n.pt, Proposed: yolov8s.pt
+  epochs: 40
+  batch_size: 16
+  imgsz: 640
+  device: "auto"  # 'auto' 감지 (CUDA 사용 가능 시 0, 아니면 cpu)
+  patience: 15
+  optimizer: "AdamW"
+  lr0: 0.005
+  lrf: 0.01
+  augmentations:
+    hsv_h: 0.0
+    hsv_s: 0.0
+    hsv_v: 0.2
+    degrees: 10.0
+    translate: 0.1
+    scale: 0.2
+    flipud: 0.5
+    fliplr: 0.5
+    mosaic: 0.8
+
+evaluation:
+  eval_iou: 0.5
+  conf_floor: 0.05
+  target_recall: 0.98
+
+policy:
+  tau_low: 0.22      # 안전 임계값: 이보다 작으면 AI 미경고 (기존 공정 검사 유지)
+  tau_high: 0.65     # 확정 임계값: 이보다 크면 즉시 불량(Defect) 판정
+  cost_fn: 100.0     # 미탐(FN) 위험 비용 가중치
+  cost_fp: 1.0       # 오탐(FP/재검사) 비용 가중치

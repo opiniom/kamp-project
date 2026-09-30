@@ -1,0 +1,51 @@
+{
+  "total_analyzed_objects": 116,
+  "size_analysis": [
+    {
+      "size_cat": "Medium (100-300px^2)",
+      "total_gt": 43,
+      "detected_tp": 0,
+      "recall": 0.0,
+      "missed_fn": 43,
+      "recall_pct": 0.0
+    },
+    {
+      "size_cat": "Small (<100px^2)",
+      "total_gt": 73,
+      "detected_tp": 0,
+      "recall": 0.0,
+      "missed_fn": 73,
+      "recall_pct": 0.0
+    }
+  ],
+  "location_analysis": [
+    {
+      "loc_cat": "Center (dist > 0.15)",
+      "total_gt": 116,
+      "detected_tp": 0,
+      "recall": 0.0,
+      "missed_fn": 116,
+      "recall_pct": 0.0
+    }
+  ],
+  "contrast_analysis": [
+    {
+      "contrast_cat": "High Contrast (>=15)",
+      "total_gt": 8,
+      "detected_tp": 0,
+      "recall": 0.0,
+      "missed_fn": 8,
+      "recall_pct": 0.0
+    },
+    {
+      "contrast_cat": "Low Contrast (<15)",
+      "total_gt": 108,
+      "detected_tp": 0,
+      "recall": 0.0,
+      "missed_fn": 108,
+      "recall_pct": 0.0
+    }
+  ],
+  "representative_failures_saved": 5,
+  "summary": "이물질 크기가 작을수록(<100px^2) 및 제품 외곽 경계부(Boundary)에 위치할수록 엑스선 투과 감쇠율 급변 및 배경 두께 불균일성으로 인해 미탐지율(FN)이 통계적으로 유의미하게 증가함."
+}

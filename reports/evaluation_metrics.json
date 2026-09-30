@@ -1,0 +1,15 @@
+{
+  "weights_evaluated": "C:\\kamp\\kamp_xray_pipeline\\runs\\train\\dry_run\\weights\\best.pt",
+  "test_images_count": 80,
+  "total_gt_boxes": 116,
+  "true_positives": 0,
+  "false_positives": 0,
+  "false_negatives": 116,
+  "precision": 0.0,
+  "recall": 0.0,
+  "f1_score": 0.0,
+  "mean_latency_ms": 196.32,
+  "fps": 5.1,
+  "eval_iou_threshold": 0.5,
+  "froc_path": "C:\\kamp\\kamp_xray_pipeline\\reports\\froc_curve.png"
+}
