@@ -158,11 +158,13 @@ flowchart TD
 
 ### 환경 요구사항
 * Python 3.10 이상
-* 필수 라이브러리: `torch`, `torchvision`, `ultralytics`, `opencv-python`, `pandas`, `numpy`, `matplotlib`, `pyyaml`
+* KAMP Note 필수 라이브러리 일괄 설치 명령어:
 
 ```bash
-pip install ultralytics opencv-python pandas numpy matplotlib pyyaml
+pip install ultralytics opencv-python-headless pyyaml pandas matplotlib
 ```
+
+> 💡 `notebooks/KAMP_Xray_Tutorial.ipynb` 노트북 맨 첫 번째 셀에 위 설치 명령어가 포함되어 있어, 노트북을 열고 첫 번째 셀만 실행해도 모든 라이브러리가 자동 설치됩니다.
 
 ---
 
