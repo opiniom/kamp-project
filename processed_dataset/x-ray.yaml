@@ -1,6 +1,6 @@
 names:
   0: foreign_object
-path: .
+path: processed_dataset
 test: images/test
 train: images/train
 val: images/val

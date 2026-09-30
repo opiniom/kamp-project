@@ -45,6 +45,15 @@ def run_train():
     if not os.path.exists(data_yaml):
         raise FileNotFoundError(f"데이터셋 설정 파일을 찾을 수 없습니다: {data_yaml}")
         
+    # data_yaml 내의 path를 현재 실행 환경(KAMP Note 등)의 실제 절대 경로로 자동 보정
+    with open(data_yaml, 'r', encoding='utf-8') as f:
+        yolo_cfg = yaml.safe_load(f)
+    abs_processed_dir = os.path.abspath(os.path.join(pipeline_dir, config["paths"]["processed_dir"])).replace('\\', '/')
+    yolo_cfg['path'] = abs_processed_dir
+    with open(data_yaml, 'w', encoding='utf-8') as f:
+        yaml.dump(yolo_cfg, f, allow_unicode=True)
+    print(f"[*] YOLO 데이터셋 경로 보정: {abs_processed_dir}")
+        
     # 하이퍼파라미터 결정
     model_name = args.model if args.model else config["training"]["model_name"]
     epochs = args.epochs if args.epochs is not None else config["training"]["epochs"]

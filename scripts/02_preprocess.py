@@ -142,7 +142,7 @@ def run_preprocess():
     # YOLOv8 데이터셋 YAML 생성
     yaml_path = os.path.join(processed_dir, "x-ray.yaml")
     yolo_data_dict = {
-        'path': '.',
+        'path': os.path.abspath(processed_dir).replace('\\', '/'),
         'train': 'images/train',
         'val': 'images/val',
         'test': 'images/test',
