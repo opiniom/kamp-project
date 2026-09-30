@@ -52,15 +52,18 @@ def run_evaluation(weights_path=None):
     reports_dir = os.path.join(pipeline_dir, config["paths"]["reports_dir"])
     os.makedirs(reports_dir, exist_ok=True)
     
-    # 가중치 파일 탐색
+    # 가중치 파일 탐색 (최근 학습된 가중치 우선 정렬)
     if weights_path is None:
         candidate_weights = glob.glob(os.path.join(pipeline_dir, "runs", "train", "**", "best.pt"), recursive=True)
         if candidate_weights:
+            candidate_weights.sort(key=os.path.getmtime)
             weights_path = candidate_weights[-1]
         else:
             weights_path = "yolov8s.pt"
             
     print(f"[*] 평가 대상 모델 가중치: {weights_path}")
+    if "dry_run" in weights_path:
+        print("[!] 안내: 현재 1-epoch 테스트용 'dry_run' 가중치로 평가 중입니다. [단계 D](03_train.py) 학습을 완료하신 후 실행하시면 정상적인 고정밀 탐지 성능이 도출됩니다.")
     model = YOLO(weights_path)
     
     test_img_dir = os.path.join(pipeline_dir, config["paths"]["processed_dir"], "images", "test")
@@ -227,4 +230,8 @@ def run_evaluation(weights_path=None):
     print("=" * 65)
 
 if __name__ == '__main__':
-    run_evaluation()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--weights', type=str, default=None, help='가중치 파일 경로')
+    args = parser.parse_args()
+    run_evaluation(weights_path=args.weights)

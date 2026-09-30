@@ -48,11 +48,18 @@ def run_threshold_policy(weights_path=None):
     reports_dir = os.path.join(pipeline_dir, config["paths"]["reports_dir"])
     os.makedirs(reports_dir, exist_ok=True)
     
+    # 모델 로드 (최신 학습 가중치 우선 정렬)
     if weights_path is None:
         candidate_weights = glob.glob(os.path.join(pipeline_dir, "runs", "train", "**", "best.pt"), recursive=True)
-        weights_path = candidate_weights[-1] if candidate_weights else "yolov8s.pt"
+        if candidate_weights:
+            candidate_weights.sort(key=os.path.getmtime)
+            weights_path = candidate_weights[-1]
+        else:
+            weights_path = "yolov8s.pt"
         
     print(f"[*] 임계값 최적화 대상 모델: {weights_path}")
+    if "dry_run" in weights_path:
+        print("[!] 안내: 현재 1-epoch 테스트용 'dry_run' 가중치로 최적화 중입니다. [단계 D](03_train.py) 학습 후 재실행을 권장합니다.")
     model = YOLO(weights_path)
     
     # 원칙: 임계값 선택은 Validation 세트에서만 수행하여 Test 누수 방지
@@ -250,4 +257,8 @@ def run_threshold_policy(weights_path=None):
     print("=" * 65)
 
 if __name__ == '__main__':
-    run_threshold_policy()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--weights', type=str, default=None, help='가중치 파일 경로')
+    args = parser.parse_args()
+    run_threshold_policy(weights_path=args.weights)
