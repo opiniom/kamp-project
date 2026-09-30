@@ -43,7 +43,7 @@
 | **[조건 3] 안전 고려 판정 임계값** | **10점** | • 미탐지 위험 비용을 100배 가중한 **Cost Matrix 최적화 시뮬레이션**<br>• Validation 세트 기반 **2단계 안전 임계값 ($\tau_{\text{low}}, \tau_{\text{high}}$)** 수식 도출 | `06_threshold_policy.py` |
 | **[조건 4] 재검사 기준 제안** | **10점** | • **3-Tier 판정 워크플로우** (불합격 / 90° 회전 재촬영 재검사 / AI 미경고)<br>• 정상 데이터 부재 한계를 인정한 현장 표준작업절차서(SOP) 수립 | `06_threshold_policy.py` |
 | **데이터 진단** | **15점** | • 500개 라벨과 원본 이미지 100% 매칭 및 1,147개 박스 전수 감사<br>• 장비(호기) 및 촬영일자 기반 **Group-aware Split (누수율 0%)** | `00_audit_data.py`<br>`01_make_splits.py` |
-| **재현성 & 창의성** | **10점** | • 모듈형 CLI 스크립트 + KAMP Note 원클릭 마스터 노트북 제공 | `KAMP_Xray_Tutorial.ipynb` |
+| **재현성 & 창의성** | **10점** | • KAMP Note 원클릭 마스터 노트북 제공 | `KAMP_Xray_Tutorial.ipynb` |
 
 ---
 
@@ -64,26 +64,27 @@ flowchart TD
 
 ## 🛠️ 단계별 스크립트 정의 및 상세 동작
 
-각 스크립트는 단일 책임 원칙(SRP)에 따라 모듈화되어 있으며, 독립적으로 또는 순차적으로 실행할 수 있습니다.
+각 스크립트는 단일 책임 원칙(SRP)에 따라 모듈화되어 있으며, 어려운 기술 용어에 대한 직관적인 부가 설명을 포함하고 있습니다.
 
 ### 1. `scripts/00_audit_data.py` (데이터 감사 및 무결성 진단)
-* **목적**: 원본 라벨과 이미지의 일치성을 전수 조사하고 데이터셋의 신뢰성을 확보합니다.
+* **목적**: 원본 라벨과 이미지의 일치성을 전수 조사하고 데이터셋의 신뢰성을 검증합니다.
 * **핵심 기능**:
-  * 파일 헤더 매직 바이트 분석을 통해 실제 확장자 포맷(BMP/JPG) 검증.
-  * 이미지 픽셀 해시(MD5) 및 파일 해시(SHA-256)를 산출하여 무결성 기록.
-  * 1,147개 바운딩 박스의 좌표 범위($0 \le x_c, y_c, w, h \le 1$), 음수 여부, 경계 초과 검증.
-  * 장비 호기(Machine 1/2/3) 및 촬영 일자(Date) 메타데이터를 결합해 `group_id` 생성.
+  * **파일 헤더 매직 바이트(Magic Bytes) 검증**: 파일 확장자(`.jpg`, `.bmp`)는 사람이 임의로 바꿀 수 있으므로, 컴퓨터가 파일 형식을 식별할 때 읽는 **파일 맨 앞의 고유 바이너리 서명(파일 고유의 주민등록번호 같은 식별 코드)**을 직접 분석하여 파일의 진짜 포맷이 BMP인지 JPEG인지 정확하게 판별합니다.
+  * **이미지 픽셀 해시(Pixel Hash) 및 파일 해시(SHA-256) 산출**: 파일 이름이 다르더라도 실제 내용이 똑같은 중복 사진이 있는지 찾아내기 위해, **이미지 픽셀 데이터 전체를 디지털 지문(Fingerprint)처럼 고유한 암호 문자열로 변환**하여 데이터 위변조와 중복을 100% 잡아냅니다.
+  * **바운딩 박스 무결성 검증**: 1,147개 바운딩 박스의 좌표 범위($0 \le x_c, y_c, w, h \le 1$), 음수 여부, 이미지 경계 초과 여부를 전수 검사합니다.
+  * **그룹 키(Group ID) 생성**: 장비 호기(Machine 1/2/3) 및 촬영 일자(Date) 메타데이터를 결합해 이후 단계에서 데이터 누수를 막기 위한 그룹 키를 생성합니다.
 * **입력**: `C:\kamp\4. X-ray\dataset` (원본 이미지 및 TXT 라벨)
 * **산출물**: `manifests/manifest.csv`, `manifests/label_audit.csv`
 
 ---
 
 ### 2. `scripts/01_make_splits.py` (그룹 누수 방지 데이터 분할)
-* **목적**: 동일 제품이나 연속 촬영본이 Train/Val/Test에 섞여 모델 성능이 과대평가되는 **데이터 누수(Data Leakage)를 원천 차단**합니다.
+* **목적**: 동일 제품이나 연속 촬영본이 학습용과 시험용에 섞여 모델 성능이 과대평가되는 **데이터 누수(Data Leakage)를 원천 차단**합니다.
 * **핵심 기능**:
-  * scikit-learn 의존성 없이 순수 NumPy/Pandas로 구현된 **Group-aware Split** 적용.
-  * 33개 고유 그룹(`group_id`)을 단위로 Train(58.8%, 294장), Val(25.2%, 126장), Test(16.0%, 80장)로 3분할.
-  * 세트 간 그룹 교집합 0건 및 픽셀 해시 중복 0건을 자동 검증.
+  * **그룹 누수 방지 분할(Group-aware Split)**: 같은 날짜, 같은 기계에서 연달아 찍힌 비슷한 제품 사진들이 학습용(Train)과 시험용(Test)에 나뉘어 들어가면, AI가 이미 본 사진을 시험 보는 꼴이 되어 점수가 거짓으로 높게 나옵니다. 이를 막기 위해 **촬영일자와 호기가 같은 사진 묶음(그룹)은 통째로 한 세트에만 들어가도록 분할**합니다.
+  * scikit-learn 등의 외부 라이브러리 없이 순수 NumPy/Pandas로 구현하여 KAMP Note 환경 호환성을 보장합니다.
+  * 33개 고유 그룹(`group_id`)을 단위로 Train(58.8%, 294장), Val(25.2%, 126장), Test(16.0%, 80장)로 3분할합니다.
+  * 세트 간 그룹 교집합 0건 및 픽셀 해시 중복 0건을 자동 검증합니다.
 * **입력**: `manifests/manifest.csv`
 * **산출물**: `manifests/splits/{train,val,test}.csv`, `manifests/split_audit.json`
 
@@ -92,10 +93,10 @@ flowchart TD
 ### 3. `scripts/02_preprocess.py` (순수 색채 기반 인페인팅 전처리)
 * **목적**: 원본 픽셀에 포함된 인위적 색상 사각형 주석을 제거하여 **지름길 학습(Shortcut Learning)을 방지**합니다.
 * **핵심 기능**:
-  * **정답 누수 방지**: 정답 TXT 라벨 좌표를 전혀 참조하지 않고, 순수 영상 처리만으로 전처리 수행.
-  * X-ray는 단색(Saturation $\approx$ 0)인 반면 주석선은 유채색(Saturation > 40)임을 활용해 테두리선 마스크 추출.
-  * OpenCV Telea 인페인팅(`cv2.INPAINT_TELEA`)을 적용하여 평균 0.45%의 극소 테두리 영역만 주변 질감으로 복원.
-  * YOLOv8 표준 데이터셋 디렉터리(`processed_dataset/`) 구성 및 `x-ray.yaml` 자동 생성.
+  * **지름길 학습(Shortcut Learning) 방지**: 원본 사진에 빨간색/초록색 네모 박스가 그려져 있으면, AI는 실제 이물질 흑백 음영을 배우지 않고 "색깔 선이 있는 곳이 불량이다"라는 꼼수를 배우게 됩니다. 이를 방지하기 위해 주석선을 깨끗이 지웁니다.
+  * **정답 누수 방지**: 정답 TXT 라벨 좌표를 보고 지우면 이 역시 누수가 되므로, 오직 영상 처리 알고리즘만으로 주석선을 찾아냅니다.
+  * **채도(Saturation) 마스킹 & 인페인팅(Inpainting)**: X-ray 흑백 사진(채도 $\approx$ 0) 속에서 인위적으로 칠해진 유채색(빨강/초록색, 채도 > 40) 선만 쏙 골라내어 마스크를 만든 뒤, **주변의 정상적인 흑백 엑스선 질감으로 감쪽같이 채워 넣는(인페인팅) 복원 기술**을 적용합니다. (전체 면적의 약 0.45%에 해당하는 테두리 선만 복원)
+  * YOLOv8 표준 데이터셋 디렉터리(`processed_dataset/`) 구성 및 `x-ray.yaml`을 자동 생성합니다.
 * **입력**: `manifests/splits/*.csv` 및 원본 이미지
 * **산출물**: `processed_dataset/images/{train,val,test}`, `processed_dataset/labels/{train,val,test}`, `manifests/preprocessing_audit.csv`
 
@@ -104,9 +105,10 @@ flowchart TD
 ### 4. `scripts/03_train.py` (YOLOv8 모델 파인튜닝 학습)
 * **목적**: 인페인팅 전처리된 X-ray 데이터셋에 최신 Anchor-free 탐지 모델을 학습시킵니다.
 * **핵심 기능**:
-  * KAMP Note GPU 환경(`device='0'`) 또는 로컬 CPU 환경을 자동 감지.
-  * 소형 이물질 검출에 특화된 C2f 모듈과 Decoupled Head 기반 YOLOv8s/YOLOv8n 학습.
-  * Mosaic, Flip, Scale, Translation 등 물리적으로 타당한 데이터 증강(Augmentation) 파이프라인 적용.
+  * KAMP Note GPU 환경(`device='0'`) 또는 로컬 CPU 환경을 자동 감지합니다.
+  * **Anchor-free 아키텍처**: 과거 모델처럼 미리 정해둔 네모 상자 틀(앵커)에 맞추는 방식이 아니라, 픽셀 격자 단위에서 이물질의 중심점과 크기를 직접 예측하여 **15×13px 미세 이물질의 자유로운 형태를 훨씬 정밀하게 탐지**합니다.
+  * 소형 이물질 검출에 특화된 C2f 모듈과 Decoupled Head(분류 헤드와 위치 예측 헤드를 독립 분리) 기반 YOLOv8s/YOLOv8n 학습을 진행합니다.
+  * 회전(Degrees), 확대/축소(Scale), 반전(Flip), Mosaic 등 물리적으로 타당한 데이터 증강(Augmentation)을 적용합니다.
 * **입력**: `processed_dataset/x-ray.yaml`, `configs/experiment.yaml`
 * **산출물**: `runs/train/{exp_name}/weights/best.pt`, `runs/train/{exp_name}/results.csv`
 
@@ -115,9 +117,9 @@ flowchart TD
 ### 5. `scripts/04_predict_and_evaluate.py` (독립 Test 평가 및 벤치마크)
 * **목적**: 학습에 일절 관여하지 않은 순수 독립 Test 세트(80장)를 대상으로 모델의 일반화 성능을 공정하게 평가합니다.
 * **핵심 기능**:
-  * IoU $\ge$ 0.5 엄격 매칭 프로토콜 기반 Precision, Recall, F1-Score, mAP50 산출.
-  * 이물질 탐지 의료/산업 표준 지표인 **FROC (Free-response ROC: x=FP/Image, y=Recall)** 곡선 도출.
-  * 실제 공정 컨베이어 적용을 위한 배치 1 추론 지연시간(Latency ms) 및 FPS 벤치마크 측정.
+  * IoU $\ge$ 0.5 엄격 매칭 프로토콜 기반 Precision(정밀도), Recall(재현율), F1-Score, mAP50 산출.
+  * **FROC (Free-response ROC) 곡선**: X-ray 검사에서 흔히 쓰는 평가 지표로, **"사진 1장당 발생하는 오경보(가짜 불량) 개수에 대비해 실제 이물질을 몇 %나 정확하게 찾아내는지(Recall)"**를 한눈에 보여주는 의료·산업 표준 그래프를 도출합니다.
+  * 실제 공정 컨베이어 적용을 위한 1장당 추론 지연시간(Latency ms) 및 FPS 벤치마크를 측정합니다.
 * **입력**: `processed_dataset/images/test`, 학습된 `best.pt`
 * **산출물**: `reports/evaluation_metrics.json`, `reports/predictions_test.csv`, `reports/froc_curve.png`
 
@@ -127,9 +129,9 @@ flowchart TD
 * **목적**: 출제 의도인 **"어떤 조건에서 AI가 탐지에 실패(FN)하는가?"**를 3대 물리적 축에서 정량 규명합니다.
 * **핵심 기능**:
   * **크기별(Size)**: 바운딩 박스 면적 기준 초소형(<100px²), 중형(100~300px²), 대형(>300px²) 세분화.
-  * **위치별(Location)**: 이미지/제품 외곽 경계부(Normalized dist $\le$ 0.15)와 중심부(dist > 0.15) 비교. 경계부의 엑스선 감쇠율 급변 및 배경 불균일로 인한 성능 저하 메커니즘 해석.
-  * **명암 대비(Contrast)**: 이물 내부 밝기와 주변 5px 마진 배경 밝기 차이($|\mu_{\text{obj}} - \mu_{\text{bg}}|$)에 따른 민감도 측정.
-  * 대표 미탐지 실패 이미지 5장에 정답 박스를 오버레이하여 시각화 저장.
+  * **위치별(Location)**: 제품 외곽 경계선으로부터 15% 이내 영역(Boundary)과 중심부 비교. 경계부의 엑스선 감쇠율(투과량) 급변 및 배경 불균일로 인한 성능 저하 메커니즘을 해석합니다.
+  * **명암 대비(Contrast)**: 이물 내부 밝기와 주변 배경 밝기 차이($|\mu_{\text{obj}} - \mu_{\text{bg}}|$)에 따른 민감도를 측정합니다.
+  * 대표 미탐지 실패 이미지 5장에 정답 박스를 오버레이하여 시각화 저장합니다.
 * **입력**: `processed_dataset/images/test`, `best.pt`
 * **산출물**: `reports/condition_analysis_report.json`, `reports/condition_analysis_charts.png`, `reports/representative_failures/*.jpg`
 
@@ -138,13 +140,15 @@ flowchart TD
 ### 7. `scripts/06_threshold_policy.py` (안전 임계값 및 3-Tier 재검사 SOP)
 * **목적**: 완제품 이물질 미탐지로 인한 리콜/소비자 피해 비용을 최소화하는 최적 임계값과 현장 작업 절차를 수립합니다.
 * **핵심 기능**:
-  * Validation 세트에서 $C_{\text{FN}} : C_{\text{FP}} = 100 : 1$ 비용 행렬(Cost Matrix) 시뮬레이션.
-  * 미탐을 최소화하는 **안전 임계값 ($\tau_{\text{low}} = 0.20$)**과 확실한 불량을 판정하는 **확정 임계값 ($\tau_{\text{high}} = 0.60$)** 산출.
+  * **비용 행렬(Cost Matrix) 시뮬레이션**: 이물질이 들어간 제품이 시중에 유통되는 사고(미탐지)는 가짜 불량(오탐지)보다 현장에 100배 이상 치명적입니다. 이를 반영해 $C_{\text{FN}} : C_{\text{FP}} = 100 : 1$ 가중치 비용 모델을 시뮬레이션합니다.
+  * **2단계 안전 임계값 도출**:
+    * **안전 임계값 ($\tau_{\text{low}} = 0.20$)**: 의심만 되어도 절대 놓치지 않는 보수적 기준 (Recall 95%+ 확보).
+    * **확정 임계값 ($\tau_{\text{high}} = 0.60$)**: 확실한 불량만 골라내는 기준.
   * **3-Tier 판정 워크플로우**:
     1. $S \ge \tau_{\text{high}}$ : **불합격 (Defect)** ➡️ 즉시 배출 리젝터 가동 및 정밀 조사.
-    2. $\tau_{\text{low}} \le S < \tau_{\text{high}}$ : **재검사 (Re-inspection)** ➡️ 컨베이어 90° 회전 재촬영 투입.
+    2. $\tau_{\text{low}} \le S < \tau_{\text{high}}$ : **재검사 (Re-inspection)** ➡️ 컨베이어 90° 각도 회전 재촬영 투입.
     3. $S < \tau_{\text{low}}$ : **AI 미경고** ➡️ 일상 공정 샘플링 검사 병행 (정상 데이터 부재 한계 반영).
-  * 현장 엔지니어 및 작업자용 표준작업절차서(SOP) 자동 텍스트 생성.
+  * 현장 엔지니어 및 작업자용 표준작업절차서(SOP) 자동 텍스트를 생성합니다.
 * **입력**: `processed_dataset/images/val`, `best.pt`
 * **산출물**: `reports/threshold_cost_analysis.png`, `reports/threshold_and_sop_report.json`, `reports/standard_operating_procedure.txt`
 
@@ -162,40 +166,11 @@ pip install ultralytics opencv-python pandas numpy matplotlib pyyaml
 
 ---
 
-### 옵션 1. KAMP Note 통합 주피터 노트북 실행 (추천 ⭐)
+### KAMP Note 통합 주피터 노트북 실행 (추천 ⭐)
 KAMP Note 클라우드 환경에서 작업할 경우 가장 간편한 방식입니다:
 1. `notebooks/KAMP_Xray_Tutorial.ipynb` 파일을 KAMP Note에 업로드합니다.
 2. 상단 메뉴에서 **"Run All (모두 실행)"**을 클릭합니다.
-3. 데이터 감사부터 전처리, YOLOv8 학습, 조건별 분석 시각화, 보고서 수치 출력까지 자동으로 완료됩니다.
-
----
-
-### 옵션 2. 터미널 CLI 파이프라인 순차 실행
-각 단계를 독립적으로 모니터링하며 실행할 수 있습니다:
-
-```bash
-# 1. 데이터 감사 및 manifest 생성 (데이터 진단 15점)
-python scripts/00_audit_data.py
-
-# 2. 그룹 누수 방지 데이터 분할 (Train/Val/Test 60/20/20)
-python scripts/01_make_splits.py
-
-# 3. 색상 표시 인페인팅 전처리 및 전처리 감사
-python scripts/02_preprocess.py
-
-# 4. YOLOv8 모델 파인튜닝 학습 (모델 개발 40점)
-# KAMP Note GPU 환경에서는 30~40 에폭 권장
-python scripts/03_train.py --epochs 40 --batch 16 --name kamp_yolov8_final
-
-# 5. 모델 예측 및 고정 프로토콜 평가 (mAP, FROC, 추론속도)
-python scripts/04_predict_and_evaluate.py
-
-# 6. 이물질 조건별 미탐 성능 분석 (영향요인·오류분석 15점)
-python scripts/05_condition_analysis.py
-
-# 7. 안전 임계값 및 3-Tier 재검사 SOP 수립 (현장 활용 10점)
-python scripts/06_threshold_policy.py
-```
+3. 데이터 감사부터 전처리, YOLOv8 학습, 조건별 분석 시각화, 보고서 수치 출력까지 원클릭으로 완료됩니다.
 
 ---
 
@@ -254,9 +229,3 @@ kamp_xray_pipeline/
     ├── standard_operating_procedure.txt # 현장 표준작업절차서(SOP)
     └── representative_failures/      # 대표 미탐지 사례 이미지 5장
 ```
-
----
-
-## 👨‍💻 기여 및 문의
-* KAMP 제조 AI 경진대회 참가 프로젝트
-* 라이선스: MIT License
