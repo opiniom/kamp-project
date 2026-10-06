@@ -201,11 +201,17 @@ def run_evaluation(weights_path=None):
     std_rec = std_tp / (total_gt_boxes + 1e-6)
     std_f1 = 2 * (std_prec * std_rec) / (std_prec + std_rec + 1e-6)
 
-    # 결과 저장
+    # 결과 저장 (이전 버전 호환성 유지용 탑레벨 키 포함)
     metrics_summary = {
         'weights_evaluated': weights_path,
         'test_images_count': len(test_images),
         'total_gt_boxes': total_gt_boxes,
+        'precision': round(std_prec, 4),
+        'recall': round(std_rec, 4),
+        'f1_score': round(std_f1, 4),
+        'true_positives': std_tp,
+        'false_positives': std_fp,
+        'false_negatives': std_fn,
         'standard_eval_conf_0.25': {
             'tp': std_tp, 'fp': std_fp, 'fn': std_fn,
             'precision': round(std_prec, 4), 'recall': round(std_rec, 4), 'f1_score': round(std_f1, 4)
